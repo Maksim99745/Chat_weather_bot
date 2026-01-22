@@ -1,5 +1,5 @@
 {
-  "name": "telegram-analytics-bot",
+  "name": "chat-weather-bot",
   "version": "1.0.0",
   "description": "Telegram bot for chat analytics",
   "main": "dist/index.js",
@@ -21,11 +21,13 @@
     "pg": "^8.13.1",
     "ioredis": "^5.4.1",
     "dotenv": "^16.4.7",
-    "@google/generative-ai": "^0.24.1"
+    "@google/generative-ai": "^0.24.1",
+    "sentiment": "^5.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "@types/sentiment": "^5.0.4",
     "typescript": "^5.7.2",
     "ts-node-dev": "^2.0.0",
     "vitest": "^2.1.8",

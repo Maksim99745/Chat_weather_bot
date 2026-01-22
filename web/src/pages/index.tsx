@@ -59,7 +59,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Telegram Analytics - Анализ пользователя</title>
+        <title>Chat Weather Bot - Анализ пользователя</title>
         <meta name="description" content="Анализ пользователя Telegram чата" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>{`
@@ -89,7 +89,7 @@ export default function Home() {
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}>
         <h1 style={{ marginBottom: '30px', color: '#333' }}>
-          📊 Telegram Analytics
+          🌤️ Chat Weather Bot
         </h1>
         
         <div style={{

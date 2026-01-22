@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Sentiment from 'sentiment';
 import dotenv from 'dotenv';
 import { MessageModel, Message, TimeFilter } from '../models/MessageModel';
 import { UserModel, User } from '../models/UserModel';
@@ -16,7 +17,11 @@ if (!GEMINI_API_KEY) {
 const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 // Модель Gemini - можно изменить на gemini-3-flash-preview, gemini-2.0-flash-exp или gemini-1.5-pro
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const GEMINI_MODEL = "gemini-2.0-flash-exp";
+
+// Инициализация библиотеки sentiment для fallback-анализа
+// Библиотека сама анализирует английские слова из встроенного словаря
+const sentiment = new Sentiment();
 
 export interface SentimentResult {
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -46,14 +51,21 @@ export class SentimentService {
    */
   static async analyzeSentiment(text: string): Promise<SentimentResult> {
     if (!genAI) {
-      throw new Error('Gemini API не настроен');
+      return this.fallbackSentimentAnalysis(text);
     }
 
-    const prompt = `Определи тональность следующего сообщения из Telegram чата. Ответь ТОЛЬКО одним словом: "positive", "negative" или "neutral".
+    const prompt = `Определи тональность следующего сообщения из Telegram группового чата.
+
+Правила:
+- "positive" - позитивное, дружелюбное, радостное сообщение (например: "спасибо", "отлично", "класс", "супер", "молодец", "ура", "поздравляю", "браво", "умница", "здорово", "круто")
+- "negative" - негативное, грубое, оскорбительное сообщение (например: "урод", "fuck", "ненавижу", "плохо", ругательства, оскорбления)
+- "neutral" - нейтральное, информационное сообщение без эмоций
+
+Важно: Сообщения с поздравлениями, похвалой, радостью всегда "positive". Сообщения с оскорблениями, ругательствами, негативом всегда "negative".
 
 Сообщение: "${text}"
 
-Ответ (только одно слово):`;
+Ответ ТОЛЬКО одним словом: positive, negative или neutral`;
 
     try {
       const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
@@ -72,9 +84,42 @@ export class SentimentService {
         sentiment,
         confidence: sentimentText.includes(sentiment) ? 0.8 : 0.5,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Ошибка при анализе тональности:', error);
-      return { sentiment: 'neutral', confidence: 0 };
+      
+      // Обработка ошибки квоты - используем fallback анализ
+      if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('Quota exceeded')) {
+        console.warn('⚠️ Превышен лимит Gemini API, используем fallback анализ тональности');
+        return this.fallbackSentimentAnalysis(text);
+      }
+      
+      // При других ошибках тоже используем fallback
+      return this.fallbackSentimentAnalysis(text);
+    }
+  }
+
+  /**
+   * Fallback анализ тональности с использованием библиотеки sentiment
+   * Библиотека сама анализирует слова из встроенного словаря (в основном английские)
+   */
+  private static fallbackSentimentAnalysis(text: string): SentimentResult {
+    try {
+      // Библиотека sentiment сама анализирует текст и возвращает score
+      const result = sentiment.analyze(text);
+      const score = result.score;
+      
+      // Определяем тональность на основе score от библиотеки
+      // score > 0 = позитивное, score < 0 = негативное, score = 0 = нейтральное
+      if (score < 0) {
+        return { sentiment: 'negative', confidence: 0.8 };
+      } else if (score > 0) {
+        return { sentiment: 'positive', confidence: 0.8 };
+      }
+      
+      return { sentiment: 'neutral', confidence: 0.6 };
+    } catch (error) {
+      console.error('Ошибка в fallback анализе:', error);
+      return { sentiment: 'neutral', confidence: 0.5 };
     }
   }
 
@@ -114,8 +159,12 @@ export class SentimentService {
 
     const userSentiments: Record<number, { positive: number; negative: number }> = {};
 
+    let fallbackUsed = 0;
     for (const message of sampledMessages) {
       const sentiment = await this.analyzeSentiment(message.text);
+      if (sentiment.confidence < 0.6) {
+        fallbackUsed++;
+      }
       sentimentCounts[sentiment.sentiment]++;
 
       if (!userSentiments[message.user_id]) {
@@ -141,6 +190,10 @@ export class SentimentService {
 
     const topPositiveUser = await this.findTopSentimentUser(userSentiments, 'positive');
     const topNegativeUser = await this.findTopSentimentUser(userSentiments, 'negative');
+
+    if (fallbackUsed > 0) {
+      console.log(`⚠️ Использован fallback анализ для ${fallbackUsed} из ${sampledMessages.length} сообщений (возможно, превышена квота API)`);
+    }
 
     const result: ChatWeather = {
       positiveCount,
@@ -266,14 +319,14 @@ export class SentimentService {
       const username = weather.topPositiveUser.user.username
         ? `@${weather.topPositiveUser.user.username}`
         : weather.topPositiveUser.user.first_name || `ID: ${weather.topPositiveUser.user.telegram_id}`;
-      result += `☀️ Главный позитивщик: ${username} (${weather.topPositiveUser.count} позитивных сообщений)\n`;
+      result += `☀️ Главный позитивщик: ${username} (количество позитивных сообщений - ${weather.topPositiveUser.count})\n`;
     }
 
     if (weather.topNegativeUser) {
       const username = weather.topNegativeUser.user.username
         ? `@${weather.topNegativeUser.user.username}`
         : weather.topNegativeUser.user.first_name || `ID: ${weather.topNegativeUser.user.telegram_id}`;
-      result += `🌧️ Главный негативщик: ${username} (${weather.topNegativeUser.count} негативных сообщений)\n`;
+      result += `🌧️ Главный негативщик: ${username} (количество негативных сообщений - ${weather.topNegativeUser.count})\n`;
     }
 
     return result;

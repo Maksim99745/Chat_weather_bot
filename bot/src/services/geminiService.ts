@@ -63,8 +63,21 @@ export class GeminiService {
       const analysis = this.parseAnalysis(analysisText, messages.length);
 
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Ошибка при анализе пользователя:', error);
+      
+      // Обработка ошибки квоты
+      if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('Quota exceeded')) {
+        const retryMatch = error?.message?.match(/Please retry in ([\d.]+)s/);
+        const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 60;
+        throw new Error(`⚠️ Превышен лимит запросов к Gemini API (бесплатный тариф: 20 запросов/день). Попробуйте через ${retrySeconds} секунд или обновите тарифный план.`);
+      }
+      
+      // Обработка других ошибок API
+      if (error?.message?.includes('GoogleGenerativeAI Error')) {
+        throw new Error('❌ Ошибка Gemini API. Проверьте GEMINI_API_KEY и доступность модели.');
+      }
+      
       throw error;
     }
   }

@@ -40,7 +40,22 @@ export class WeatherHandler {
     } catch (error) {
       console.error('Ошибка в handleWeatherButton:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      await ctx.reply(`❌ Ошибка: ${errorMessage}`);
+      
+      // Удаляем сообщение о загрузке если есть
+      try {
+        if ('callback_query' in ctx.update && ctx.update.callback_query?.message) {
+          const msgId = 'message' in ctx.update.callback_query ? ctx.update.callback_query.message.message_id : null;
+          if (msgId) {
+            await ctx.telegram.deleteMessage(ctx.chat!.id, msgId);
+          }
+        }
+      } catch {}
+      
+      if (errorMessage.includes('квот') || errorMessage.includes('лимит')) {
+        await ctx.reply(`⚠️ ${errorMessage}\n\n💡 Бесплатный тариф Gemini API: 20 запросов/день. Попробуйте позже или обновите тарифный план.`, PERIOD_KEYBOARD);
+      } else {
+        await ctx.reply(`❌ Ошибка: ${errorMessage}`, PERIOD_KEYBOARD);
+      }
     }
   }
 

@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:13
-    container_name: telegram-analytics-postgres
+    container_name: chat-weather-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: telegram-analytics-redis
+    container_name: chat-weather-redis
     ports:
       - "6379:6379"
     volumes:
@@ -38,7 +38,7 @@ services:
     build:
       context: ./bot
       dockerfile: Dockerfile
-    container_name: telegram-analytics-bot
+    container_name: chat-weather-bot
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
@@ -59,7 +59,7 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-    container_name: telegram-analytics-web
+    container_name: chat-weather-web
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-telegram_analytics}
       GEMINI_API_KEY: ${GEMINI_API_KEY}

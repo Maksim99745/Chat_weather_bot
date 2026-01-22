@@ -1,4 +1,4 @@
--- Инициализация базы данных для Telegram Analytics Bot
+-- Инициализация базы данных для Chat Weather Bot
 
 -- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (

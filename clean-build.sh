@@ -17,7 +17,7 @@ echo "🛑 Останавливаем всё..."
 $SUDO_PREFIX $COMPOSE_CMD down -v --remove-orphans
 
 echo "🗑️  Удаляем все образы проекта..."
-sudo docker images | grep -E "(docker-compose-up|telegram-analytics)" | awk '{print $3}' | xargs -r sudo docker rmi -f 2>/dev/null || true
+sudo docker images | grep -E "(docker-compose-up|chat-weather|telegram-analytics)" | awk '{print $3}' | xargs -r sudo docker rmi -f 2>/dev/null || true
 
 echo "🧹 Полная очистка Docker..."
 sudo docker system prune -af --volumes

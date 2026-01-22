@@ -59,7 +59,16 @@ export default async function handler(
   } catch (error) {
     console.error('Ошибка в API /api/analyze:', error);
     const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-    return res.status(500).json({ 
+    
+    // Определяем статус код в зависимости от типа ошибки
+    let statusCode = 500;
+    if (errorMessage.includes('квот') || errorMessage.includes('лимит')) {
+      statusCode = 429; // Too Many Requests
+    } else if (errorMessage.includes('не найден')) {
+      statusCode = 404;
+    }
+    
+    return res.status(statusCode).json({ 
       error: errorMessage 
     });
   }

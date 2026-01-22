@@ -20,16 +20,16 @@ echo "🗑️  Удаляем старые образы проекта (лока
 $SUDO_PREFIX $COMPOSE_CMD down --rmi local 2>/dev/null || true
 
 echo "🗑️  Удаляем все образы проекта по имени..."
-sudo docker images | grep -E "(docker-compose-up|telegram-analytics)" | awk '{print $3}' | xargs -r sudo docker rmi -f 2>/dev/null || true
+sudo docker images | grep -E "(docker-compose-up|chat-weather|telegram-analytics)" | awk '{print $3}' | xargs -r sudo docker rmi -f 2>/dev/null || true
 
 echo "🧹 Очищаем неиспользуемые образы и контейнеры..."
 sudo docker system prune -f
 
 echo "🔨 Пересобираем образы с нуля..."
 echo "⏳ Это может занять время при первом запуске (загрузка базовых образов)..."
-$SUDO_PREFIX $COMPOSE_CMD build --no-cache --pull || {
+$SUDO_PREFIX $COMPOSE_CMD build --no-cache --pull --provenance=false --sbom=false || {
     echo "⚠️  Ошибка при загрузке образов. Пробуем без --pull..."
-    $SUDO_PREFIX $COMPOSE_CMD build --no-cache
+    $SUDO_PREFIX $COMPOSE_CMD build --no-cache --provenance=false --sbom=false
 }
 
 echo "🚀 Запускаем контейнеры в фоновом режиме..."
