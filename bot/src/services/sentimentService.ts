@@ -206,7 +206,7 @@ export class SentimentService {
       topNegativeUser,
     };
 
-    await CacheService.set(cacheKey, result, 600);
+    await CacheService.set(cacheKey, result, 1200);
 
     return result;
   }
