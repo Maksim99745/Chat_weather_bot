@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Копируем package.json
+COPY package*.json ./
+
+# Устанавливаем зависимости
+RUN npm install
+
+# Копируем конфигурационные файлы
+COPY tsconfig.json ./
+COPY next.config.js* ./
+
+# Запускаем в режиме разработки
+CMD ["npm", "run", "dev"]

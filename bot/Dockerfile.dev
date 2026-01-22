@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Копируем package.json
+COPY package*.json ./
+
+# Устанавливаем все зависимости (включая dev)
+RUN npm install
+
+# Копируем конфигурационные файлы
+COPY tsconfig.json ./
+
+# Запускаем в режиме разработки с hot-reload
+CMD ["npm", "run", "dev"]
